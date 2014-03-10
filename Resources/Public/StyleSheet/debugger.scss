@@ -1,0 +1,34 @@
+.debugger-wrapper {
+	padding: 10px;
+	background: #2D2D2D;
+	.top-container {
+		legend {
+			color: #FFFFFF;
+		}
+	}
+
+	.typoScriptEvaluationTree {
+		.highlighted, .selected {
+			background: #FF8700;
+			display: block;
+		}
+		ul {
+			color: #FFFFFF;
+			li {
+				cursor: pointer;
+			}
+		}
+	}
+
+	.details-wrapper {
+		position: fixed;
+		left: 50%;
+		top: 0;
+		height: 100%;
+		overflow: auto;
+	}
+
+	.details {
+		margin-top: 100px;
+	}
+}

@@ -1,0 +1,14 @@
+{
+    "name": "sandstorm/typoscriptdebugger",
+    "type": "typo3-flow-package",
+    "description": "a TypoScript debugger for Neos",
+    "require": {
+        "typo3/flow": "*",
+		"typo3/typoscript": "*"
+    },
+    "autoload": {
+        "psr-0": {
+            "Sandstorm\\TypoScriptDebugger": "Classes"
+        }
+    }
+}

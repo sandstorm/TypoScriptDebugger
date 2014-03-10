@@ -1,0 +1,4 @@
+TYPO3\TypoScript\Core\Runtime:
+  properties:
+    debugger:
+      object: Sandstorm\TypoScriptDebugger\Debugger

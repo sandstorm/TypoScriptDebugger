@@ -1,0 +1,20 @@
+.debugger-wrapper {
+  padding: 10px;
+  background: #2D2D2D; }
+  .debugger-wrapper .top-container legend {
+    color: #FFFFFF; }
+  .debugger-wrapper .typoScriptEvaluationTree .highlighted, .debugger-wrapper .typoScriptEvaluationTree .selected {
+    background: #FF8700;
+    display: block; }
+  .debugger-wrapper .typoScriptEvaluationTree ul {
+    color: #FFFFFF; }
+    .debugger-wrapper .typoScriptEvaluationTree ul li {
+      cursor: pointer; }
+  .debugger-wrapper .details-wrapper {
+    position: fixed;
+    left: 50%;
+    top: 0;
+    height: 100%;
+    overflow: auto; }
+  .debugger-wrapper .details {
+    margin-top: 100px; }
