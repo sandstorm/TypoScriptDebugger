@@ -141,15 +141,7 @@ class Debugger implements DebuggerInterface {
 	public function setCurrentConfiguration(array $configuration) {
 		$this->evaluationStack[count($this->evaluationStack) - 1]['configuration'] = $configuration;
 
-		/*
-		 *
-
-
-prototype(TYPO3.TypoScript:Attributes).@debugger.addMarkersToNestedEvaluations = FALSE
-prototype(TYPO3.TypoScript:Tag).@debugger.addMarkersToNestedEvaluations = FALSE
-prototype(TYPO3.Neos:ContentElementWrapping).@debugger.addMarkersToNestedEvaluations = FALSE
-		 */
-		if (isset($configuration['__objectType']) && in_array($configuration['__objectType'], array('TYPO3.TypoScript:Attributes', 'TYPO3.Neos:ContentElementWrapping'))) {
+		if (isset($configuration['__objectType']) && in_array($configuration['__objectType'], array('TYPO3.TypoScript:Attributes', 'TYPO3.TypoScript:Tag', 'TYPO3.Neos:ContentElementWrapping'))) {
 			$this->evaluationStack[count($this->evaluationStack) - 1]['_oldMarkerValue'] = $this->currentlyRenderingMarkers;
 			$this->currentlyRenderingMarkers = FALSE;
 		}

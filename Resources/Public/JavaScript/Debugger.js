@@ -58,7 +58,11 @@
 			channel.bind('updateEvaluationTrace', function(trans, evaluationTraceAsString) {
 				window.evaluationTrace = JSON.parse(evaluationTraceAsString);
 
-				$('.typoScriptEvaluationTree').html(treeTemplate(window.evaluationTrace));
+				try {
+					$('.typoScriptEvaluationTree').html(treeTemplate(window.evaluationTrace));
+				} catch (e) {
+					console.error("ERROR", e, e.stack)
+				}
 			});
 		}
 

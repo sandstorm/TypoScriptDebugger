@@ -16,7 +16,7 @@
 		<link href="StyleSheet/debugger.css" rel="stylesheet">
 
 		<script id="tree-template" type="text/x-handlebars-template">
-			{{#if children}}
+			{{#if children.length}}
 				<ul>
 					{{#each children}}
 						<li>
@@ -41,17 +41,15 @@
 				{{#eachProperty configuration}}
 					{{key}}:
 					{{#if value.__eelExpression}}
-						{ {{value.__eelExpression}} }
+						${ {{value.__eelExpression}} }
 					{{else}}
 						{{value}}
 					{{/if}}<br />
 				{{/eachProperty}}
-				<hr />
-				<h5>Meta Properties</h5>
 				{{#eachProperty metaConfiguration}}
-					{{key}}:
+					@{{key}}:
 					{{#if value.__eelExpression}}
-						{ {{value.__eelExpression}} }
+						${ {{value.__eelExpression}} }
 					{{else}}
 						{{value}}
 					{{/if}}<br />
