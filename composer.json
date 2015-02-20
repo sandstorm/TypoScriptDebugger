@@ -4,7 +4,7 @@
     "description": "a TypoScript debugger for Neos",
     "require": {
         "typo3/flow": "*",
-		"typo3/typoscript": "*"
+        "typo3/typoscript": "*"
     },
     "autoload": {
         "psr-0": {
