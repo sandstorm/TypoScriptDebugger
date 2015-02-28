@@ -11,8 +11,14 @@ namespace Sandstorm\TypoScriptDebugger;
  * The TYPO3 project - inspiring people to share!                         *
  *                                                                        */
 
+use TYPO3\Eel\Context;
+use TYPO3\Eel\FlowQuery\FlowQuery;
 use TYPO3\Flow\Annotations as Flow;
+use TYPO3\Flow\Mvc\Controller\ControllerContext;
+use TYPO3\Flow\Reflection\ObjectAccess;
 use TYPO3\TypoScript\Core\DebuggerInterface;
+use TYPO3\TypoScript\TypoScriptObjects\AbstractTypoScriptObject;
+use TYPO3\TypoScript\TypoScriptObjects\CaseImplementation;
 
 /**
  * The TypoScript Debugger is being called by the TypoScript Runtime during TS evaluation.
@@ -31,9 +37,9 @@ class Debugger implements DebuggerInterface {
 
 	/**
 	 * @Flow\Inject
-	 * @var \TYPO3\Flow\Resource\Publishing\ResourcePublisher
+	 * @var \TYPO3\Flow\Resource\ResourceManager
 	 */
-	protected $resourcePublisher;
+	protected $resourceManager;
 
 	/**
 	 * @Flow\Inject
@@ -110,6 +116,7 @@ class Debugger implements DebuggerInterface {
 	 * to the evaluation stack.
 	 *
 	 * @param string $typoScriptPath
+	 * @return void
 	 */
 	public function beginEvaluationCycle($typoScriptPath) {
 		$emptyEvaluation = array(
@@ -137,6 +144,7 @@ class Debugger implements DebuggerInterface {
 	 * TypoScript object.
 	 *
 	 * @param array $configuration
+	 * @return void
 	 */
 	public function setCurrentConfiguration(array $configuration) {
 		$this->evaluationStack[count($this->evaluationStack) - 1]['configuration'] = $configuration;
@@ -154,9 +162,10 @@ class Debugger implements DebuggerInterface {
 	 * so if this method is called exceptions have not occured during initialization.
 	 *
 	 * @param array $context
-	 * @param \TYPO3\TypoScript\TypoScriptObjects\AbstractTypoScriptObject $tsObject
+	 * @param AbstractTypoScriptObject $tsObject
+	 * @return void
 	 */
-	public function beforeTypoScriptEvaluation(array $context, \TYPO3\TypoScript\TypoScriptObjects\AbstractTypoScriptObject $tsObject) {
+	public function beforeTypoScriptEvaluation(array $context, AbstractTypoScriptObject $tsObject) {
 		$this->evaluationStack[count($this->evaluationStack) - 1]['context'] = $context;
 		$this->evaluationStack[count($this->evaluationStack) - 1]['tsObject'] = $tsObject;
 	}
@@ -167,9 +176,11 @@ class Debugger implements DebuggerInterface {
 	 * Stores and post-processes the final output, inserting tokens.
 	 *
 	 * @param string $output
+	 * @param bool $renderOutput
+	 * @return void
 	 */
 	public function endEvaluationCycle(&$output, $renderOutput = TRUE) {
-		if ($renderOutput && is_string($output) && $output !== \TYPO3\TypoScript\TypoScriptObjects\CaseImplementation::MATCH_NORESULT) {
+		if ($renderOutput && is_string($output) && $output !== CaseImplementation::MATCH_NORESULT) {
 			$this->evaluationStack[count($this->evaluationStack) - 1]['output'] = preg_replace('/<!--(BEGIN|END)_[A-Z0-9_]*-->/', '', preg_replace('/\s+/', ' ', $output));
 
 			if ($this->currentlyRenderingMarkers === TRUE) {
@@ -209,10 +220,10 @@ class Debugger implements DebuggerInterface {
 	 * main entry-point for rendering the debugger or augumenting the page.
 	 *
 	 * @param string $output
-	 * @param \TYPO3\Flow\Mvc\Controller\ControllerContext $controllerContext
+	 * @param ControllerContext $controllerContext
 	 * @return string The post-processed or replaced output
 	 */
-	public function postProcessOutput($output, \TYPO3\Flow\Mvc\Controller\ControllerContext $controllerContext) {
+	public function postProcessOutput($output, ControllerContext $controllerContext) {
 		if (count($this->evaluationStack) === 1) {
 			$this->addComputedPropertiesToEvaluation($this->evaluationTrace);
 
@@ -236,7 +247,7 @@ class Debugger implements DebuggerInterface {
 		$debuggingSnippet = file_get_contents('resource://Sandstorm.TypoScriptDebugger/Private/DebuggingSnippet.html');
 		$evaluationTrace = $this->cleanEvaluationForDebugger($this->evaluationTrace);
 
-		return str_replace(array('###BASE_URL###', '###EVALUATION_TRACE###'), array($this->resourcePublisher->getStaticResourcesWebBaseUri() . 'Packages/Sandstorm.TypoScriptDebugger', json_encode(json_encode($evaluationTrace))), $debuggingSnippet);
+		return str_replace(array('###BASE_URL###', '###EVALUATION_TRACE###'), array($this->resourceManager->getPublicPackageResourceUri('Sandstorm.TypoScriptDebugger', ''), json_encode(json_encode($evaluationTrace))), $debuggingSnippet);
 	}
 
 	/**
@@ -244,7 +255,7 @@ class Debugger implements DebuggerInterface {
 	 * reduce transferred data to client)
 	 *
 	 * @param array $evaluation
-	 * return array the cleaned evaluation
+	 * @return array the cleaned evaluation
 	 */
 	protected function cleanEvaluationForDebugger(array $evaluation) {
 		unset($evaluation['tsObject']);
@@ -270,24 +281,24 @@ class Debugger implements DebuggerInterface {
 	 * - __typo3-typoscript-debugger-eelExpression: The eel expression which should be evaluated
 	 * - __typo3-typoscript-debugger-currentArrayPath: The array path inside $this->evaluationTrace
 	 *
-	 * @param \TYPO3\Flow\Mvc\Controller\ControllerContext $controllerContext
+	 * @param ControllerContext $controllerContext
 	 * @return string
 	 */
-	protected function renderEelExpression(\TYPO3\Flow\Mvc\Controller\ControllerContext $controllerContext) {
+	protected function renderEelExpression(ControllerContext $controllerContext) {
 		$eelExpression = $controllerContext->getRequest()->getInternalArgument('__typo3-typoscript-debugger-eelExpression');
 		$currentArrayPath = $controllerContext->getRequest()->getInternalArgument('__typo3-typoscript-debugger-currentArrayPath');
 		$currentArrayPath = str_replace('[', '.', $currentArrayPath);
 		$currentArrayPath = str_replace(']', '', $currentArrayPath);
 		$currentArrayPath = trim($currentArrayPath, '.');
 
-		$evaluation = \TYPO3\Flow\Reflection\ObjectAccess::getPropertyPath($this->evaluationTrace, $currentArrayPath);
+		$evaluation = ObjectAccess::getPropertyPath($this->evaluationTrace, $currentArrayPath);
 
 		$eelContextVariables = $evaluation['context'];
 		$eelContextVariables['q'] = function($element) {
-			return new \TYPO3\Eel\FlowQuery\FlowQuery(array($element));
+			return new FlowQuery(array($element));
 		};
 		$eelContextVariables['this'] = $evaluation['tsObject'];
-		$context = new \TYPO3\Eel\Context($eelContextVariables);
+		$context = new Context($eelContextVariables);
 		return json_encode($this->eelEvaluator->evaluate($eelExpression, $context));
 	}
 
