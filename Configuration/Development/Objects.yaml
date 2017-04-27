@@ -1,4 +1,4 @@
-TYPO3\TypoScript\Core\Runtime:
+Neos\Fusion\Core\Runtime:
   properties:
     debugger:
-      object: Sandstorm\TypoScriptDebugger\Debugger
+      object: Sandstorm\FusionDebugger\Debugger

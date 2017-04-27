@@ -19,7 +19,7 @@
 		iterator = function(currentPath) {
 			evaluation = eval('window.evaluationTrace' + currentPath);
 			if (evaluation[key] && JSON.stringify(evaluation[key]) === stringifiedValue) {
-				$('.typoScriptEvaluationTree [data-arraypath="' + currentPath + '"]').addClass('highlighted');
+				$('.fusionEvaluationTree [data-arraypath="' + currentPath + '"]').addClass('highlighted');
 			}
 			if (evaluation.children) {
 				for (k in evaluation.children) {
@@ -39,17 +39,17 @@
 			channel = Channel.build({
 				window: window.opener,
 				origin: window.location.protocol + '//' + window.location.host,
-				scope: 'typo3-typoscript-debugger',
+				scope: 'neos-fusion-debugger',
 				onReady: function() {
 					$('.status').addClass('label-success');
 				}
 			});
 
 			channel.bind('highlightElement', function(trans, token) {
-				highlightTreeNode($('.typoScriptEvaluationTree [data-token="' + token + '"]'), false);
+				highlightTreeNode($('.fusionEvaluationTree [data-token="' + token + '"]'), false);
 			});
 			channel.bind('selectElement', function(trans, token) {
-				highlightTreeNode($('.typoScriptEvaluationTree [data-token="' + token + '"]'), false, true);
+				highlightTreeNode($('.fusionEvaluationTree [data-token="' + token + '"]'), false, true);
 			});
 
 			var treeTemplate = Handlebars.compile($('#tree-template').html());
@@ -59,7 +59,7 @@
 				window.evaluationTrace = JSON.parse(evaluationTraceAsString);
 
 				try {
-					$('.typoScriptEvaluationTree').html(treeTemplate(window.evaluationTrace));
+					$('.fusionEvaluationTree').html(treeTemplate(window.evaluationTrace));
 				} catch (e) {
 					console.error("ERROR", e, e.stack)
 				}
@@ -74,10 +74,10 @@
 
 		detailsTemplate = Handlebars.compile($('#details-template').html());
 
-		$('.typoScriptEvaluationTree').on('mouseenter', 'li > span', function(e) {
+		$('.fusionEvaluationTree').on('mouseenter', 'li > span', function(e) {
 			highlightTreeNode($(this), true, false);
 		});
-		$('.typoScriptEvaluationTree').on('mouseleave', 'li > span', function(e) {
+		$('.fusionEvaluationTree').on('mouseleave', 'li > span', function(e) {
 			$('.highlighted').removeClass('highlighted');
 				// Update right area
 			if ($('.selected').length > 0) {
@@ -90,7 +90,7 @@
 			});
 		});
 
-		$('.typoScriptEvaluationTree').on('click', 'li > span', function(e) {
+		$('.fusionEvaluationTree').on('click', 'li > span', function(e) {
 			e.stopPropagation();
 			highlightTreeNode($(this), true, true);
 		});
@@ -157,8 +157,8 @@
 
 			eelExpression = $('#eel-expression').val();
 			$.post(window.location.href, {
-				'__typo3-typoscript-debugger-eelExpression': eelExpression,
-				'__typo3-typoscript-debugger-currentArrayPath': $('.details').attr('data-arraypath')
+				'__neos-fusion-debugger-eelExpression': eelExpression,
+				'__neos-fusion-debugger-currentArrayPath': $('.details').attr('data-arraypath')
 			}, function(data) {
 				$('#eel-result').text(data);
 			});

@@ -1,3 +1,4 @@
-TYPO3:
-  TypoScript:
-    enableContentCache: FALSE
+
+Neos:
+  Fusion:
+    enableContentCache: false

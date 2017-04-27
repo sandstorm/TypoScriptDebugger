@@ -1,49 +1,50 @@
 <?php
-namespace Sandstorm\TypoScriptDebugger;
+namespace Sandstorm\FusionDebugger;
 
-/*                                                                        *
- * This script belongs to the TYPO3 Flow package "Sandstorm.TypoScriptDebugger".*
- *                                                                        *
- * It is free software; you can redistribute it and/or modify it under    *
- * the terms of the GNU General Public License, either version 3 of the   *
- * License, or (at your option) any later version.                        *
- *                                                                        *
- * The TYPO3 project - inspiring people to share!                         *
- *                                                                        */
+/*
+ * This file is part of the Sandstorm.FusionDebugger package.
+ *
+ * (c) Sebastian Kurfürst
+ * (c) Contributors of the Neos Project - www.neos.io
+ *
+ * This package is Open Source Software. For the full copyright and license
+ * information, please view the LICENSE file which was distributed with this
+ * source code.
+ */
 
-use TYPO3\Eel\Context;
-use TYPO3\Eel\FlowQuery\FlowQuery;
-use TYPO3\Flow\Annotations as Flow;
-use TYPO3\Flow\Mvc\Controller\ControllerContext;
-use TYPO3\Flow\Reflection\ObjectAccess;
-use TYPO3\TypoScript\Core\DebuggerInterface;
-use TYPO3\TypoScript\TypoScriptObjects\AbstractTypoScriptObject;
-use TYPO3\TypoScript\TypoScriptObjects\CaseImplementation;
+use Neos\Eel\Context;
+use Neos\Eel\FlowQuery\FlowQuery;
+use Neos\Flow\Annotations as Flow;
+use Neos\Flow\Mvc\Controller\ControllerContext;
+use Neos\Utility\ObjectAccess;
+use Neos\Fusion\Core\DebuggerInterface;
+use Neos\Fusion\FusionObjects\AbstractFusionObject;
+use Neos\Fusion\FusionObjects\CaseImplementation;
 
 /**
- * The TypoScript Debugger is being called by the TypoScript Runtime during TS evaluation.
+ * The Fusion Debugger is being called by the Fusion Runtime during evaluation.
  *
- * It generally works in two phases: First, it collects data from within the TypoScript Runtime,
+ * It generally works in two phases: First, it collects data from within the Fusion Runtime,
  * and second it uses this data for various renderings.
  *
  * The collected evaluation data inside Debugger::$evaluationTrace forms a tree.
  *
- * The debugger works under the assumption that the TypoScript rendering is
+ * The debugger works under the assumption that the Fusion rendering is
  * *deterministic*; only depending on URL arguments and some (non-changing) state.
  * We expect that if a URL is re-loaded, it triggers the same rendering and the
- * same internal flow through the TypoScript runtime.
+ * same internal flow through the Fusion runtime.
  */
 class Debugger implements DebuggerInterface {
 
 	/**
 	 * @Flow\Inject
-	 * @var \TYPO3\Flow\Resource\ResourceManager
+	 * @var \Neos\Flow\ResourceManagement\ResourceManager
 	 */
 	protected $resourceManager;
 
 	/**
 	 * @Flow\Inject
-	 * @var \TYPO3\Eel\CompilingEvaluator
+	 * @var \Neos\Eel\CompilingEvaluator
 	 */
 	protected $eelEvaluator;
 
@@ -55,22 +56,22 @@ class Debugger implements DebuggerInterface {
 	 * contains the following parts:
 	 *
 	 * - Directly Recorded Properties
-	 *   - fullPath (string): the full TypoScript path as it is known to the Runtime
-	 *   - tsObject (object): reference to the AbstractTsObject being rendered here
-	 *   - configuration (ass. array): Configuration array for this TypoScript object
-	 *   - output (mixed): rendered HTML of this TypoScript object
-	 *   - context (ass. array): the currently active TypoScript context
+	 *   - fullPath (string): the full Fusion path as it is known to the Runtime
+	 *   - fusionObject (object): reference to the AbstractFusionObject being rendered here
+	 *   - configuration (ass. array): Configuration array for this Fusion object
+	 *   - output (mixed): rendered HTML of this Fusion object
+	 *   - context (ass. array): the currently active Fusion context
 	 *   - token (integer): Token for this rendering
 	 *   - children (array): ordered array of sub-$evaluation-elements which are
-	 *                       rendered inside this TypoScript object.
+	 *                       rendered inside this Fusion object.
 	 *   - _oldMarkerValue (boolean); OPTIONAL.
 	 *
 	 * - Computed Properties
-	 *   - condensedPath (string): absolute TypoScript path which does not contain TS type information
-	 *   - relativePath (string): relative TypoScript path which does not contain TS type information
+	 *   - condensedPath (string): absolute Fusion path which does not contain Fusion type information
+	 *   - relativePath (string): relative Fusion path which does not contain Fusion type information
 	 *   - arrayPath (string): path to this $evaluation in the $evaluationTrace datastructure; ready for traversal in JavaScript
-	 *   - implementationClassName (string): implementation class name of this TS object
-	 *   - objectType (string): TypoScript object type, extracted from configuration.
+	 *   - implementationClassName (string): implementation class name of this Fusion object
+	 *   - objectType (string): Fusion object type, extracted from configuration.
 	 *   - contextAsString (ass. array): the context which is converted to a displayable string
 	 *   - metaConfiguration (ass. array): "meta" configuration as exctracted of configuration array
 	 *
@@ -89,9 +90,9 @@ class Debugger implements DebuggerInterface {
 	protected $evaluationStack = NULL;
 
 	/**
-	 * We wrap a rendered TypoScript object into BEGIN_[TOKEN] and END_[TOKEN]
+	 * We wrap a rendered Fusion object into BEGIN_[TOKEN] and END_[TOKEN]
 	 * comments such that we're able to deterministically find the rendered
-	 * DOM parts created by some TypoScript object.
+	 * DOM parts created by some Fusion object.
 	 *
 	 * This counter contains the next non-used token number.
 	 *
@@ -102,7 +103,7 @@ class Debugger implements DebuggerInterface {
 	/***********************************
 	 * SECTION: DATA COLLECTION
 	 *
-	 * The following methods are called from within the TypoScript runtime's
+	 * The following methods are called from within the Fusion runtime's
 	 * evaluate-method, where they can collect various information pieces
 	 * and store them inside $this->evaluationTrace.
 	 *
@@ -115,17 +116,17 @@ class Debugger implements DebuggerInterface {
 	 * Initializes the evaluation trace at the current position and adds it
 	 * to the evaluation stack.
 	 *
-	 * @param string $typoScriptPath
+	 * @param string $fusionPath
 	 * @return void
 	 */
-	public function beginEvaluationCycle($typoScriptPath) {
+	public function beginEvaluationCycle($fusionPath) {
 		$emptyEvaluation = array(
-			'fullPath' => $typoScriptPath,
+			'fullPath' => $fusionPath,
 			'configuration' => NULL,
 			'output' => NULL,
 			'context' => array(),
 			'token' => NULL,
-			'tsObject' => NULL
+			'fusionObject' => NULL
 		);
 		if ($this->evaluationStack === NULL) {
 				// First-time initialization.
@@ -140,8 +141,8 @@ class Debugger implements DebuggerInterface {
 	}
 
 	/**
-	 * Store the currently used TypoScript configuration of the currently rendered
-	 * TypoScript object.
+	 * Store the currently used Fusion configuration of the currently rendered
+	 * Fusion object.
 	 *
 	 * @param array $configuration
 	 * @return void
@@ -149,25 +150,25 @@ class Debugger implements DebuggerInterface {
 	public function setCurrentConfiguration(array $configuration) {
 		$this->evaluationStack[count($this->evaluationStack) - 1]['configuration'] = $configuration;
 
-		if (isset($configuration['__objectType']) && in_array($configuration['__objectType'], array('TYPO3.TypoScript:Attributes', 'TYPO3.TypoScript:Tag', 'TYPO3.Neos:ContentElementWrapping'))) {
+		if (isset($configuration['__objectType']) && in_array($configuration['__objectType'], array('Neos.Fusion:Attributes', 'Neos.Fusion:Tag', 'Neos.Neos:ContentElementWrapping'))) {
 			$this->evaluationStack[count($this->evaluationStack) - 1]['_oldMarkerValue'] = $this->currentlyRenderingMarkers;
 			$this->currentlyRenderingMarkers = FALSE;
 		}
 	}
 
 	/**
-	 * Store the final context array and the TypoScript object reference.
+	 * Store the final context array and the Fusion object reference.
 	 *
-	 * Is called directly before evaluate() is called on the TypoScript object;
+	 * Is called directly before evaluate() is called on the Fusion object;
 	 * so if this method is called exceptions have not occured during initialization.
 	 *
 	 * @param array $context
-	 * @param AbstractTypoScriptObject $tsObject
+	 * @param AbstractFusionObject $fusionObject
 	 * @return void
 	 */
-	public function beforeTypoScriptEvaluation(array $context, AbstractTypoScriptObject $tsObject) {
+	public function beforeFusionEvaluation(array $context, AbstractFusionObject $fusionObject) {
 		$this->evaluationStack[count($this->evaluationStack) - 1]['context'] = $context;
-		$this->evaluationStack[count($this->evaluationStack) - 1]['tsObject'] = $tsObject;
+		$this->evaluationStack[count($this->evaluationStack) - 1]['fusionObject'] = $fusionObject;
 	}
 
 	/**
@@ -208,11 +209,11 @@ class Debugger implements DebuggerInterface {
 	 *
 	 * - if no request parameter is given, only the Debugging Snippet is inserted
 	 *   into the final rendered page.
-	 * - if the request parameter __typo3-typoscript-debugger is given, the
+	 * - if the request parameter __neos-fusion-debugger is given, the
 	 *   page-output is completely replaced and the debugger is rendered instead.
-	 * - if the request parameter __typo3-typoscript-debugger-eelExpression
+	 * - if the request parameter __neos-fusion-debugger-eelExpression
 	 *   is given, the given eel expression is evaluated and the result returned
-	 *   (AJAX request from inside the TypoScript debugger)
+	 *   (AJAX request from inside the Fusion debugger)
 	 ***********************************/
 
 	/**
@@ -227,7 +228,7 @@ class Debugger implements DebuggerInterface {
 		if (count($this->evaluationStack) === 1) {
 			$this->addComputedPropertiesToEvaluation($this->evaluationTrace);
 
-			if ($controllerContext->getRequest()->getInternalArgument('__typo3-typoscript-debugger-eelExpression')) {
+			if ($controllerContext->getRequest()->getInternalArgument('__neos-fusion-debugger-eelExpression')) {
 				$output = $this->renderEelExpression($controllerContext);
 			} else {
 				$output .= $this->renderDebuggingSnippet();
@@ -244,10 +245,10 @@ class Debugger implements DebuggerInterface {
 	 * @return string
 	 */
 	protected function renderDebuggingSnippet() {
-		$debuggingSnippet = file_get_contents('resource://Sandstorm.TypoScriptDebugger/Private/DebuggingSnippet.html');
+		$debuggingSnippet = file_get_contents('resource://Sandstorm.FusionDebugger/Private/DebuggingSnippet.html');
 		$evaluationTrace = $this->cleanEvaluationForDebugger($this->evaluationTrace);
 
-		return str_replace(array('###BASE_URL###', '###EVALUATION_TRACE###'), array($this->resourceManager->getPublicPackageResourceUri('Sandstorm.TypoScriptDebugger', ''), json_encode(json_encode($evaluationTrace))), $debuggingSnippet);
+		return str_replace(array('###BASE_URL###', '###EVALUATION_TRACE###'), array($this->resourceManager->getPublicPackageResourceUri('Sandstorm.FusionDebugger', ''), json_encode(json_encode($evaluationTrace))), $debuggingSnippet);
 	}
 
 	/**
@@ -258,7 +259,7 @@ class Debugger implements DebuggerInterface {
 	 * @return array the cleaned evaluation
 	 */
 	protected function cleanEvaluationForDebugger(array $evaluation) {
-		unset($evaluation['tsObject']);
+		unset($evaluation['fusionObject']);
 		unset($evaluation['metaConfiguration']['class']);
 		unset($evaluation['configuration']['__meta']);
 		unset($evaluation['configuration']['__objectType']);
@@ -273,20 +274,20 @@ class Debugger implements DebuggerInterface {
 	}
 
 	/**
-	 * Render an eel expression which should be evaluated from inside the TypoScript debugger,
+	 * Render an eel expression which should be evaluated from inside the Fusion debugger,
 	 * and return the result in a format understood by the debugger.
 	 *
 	 * Uses the following request arguments:
 	 *
-	 * - __typo3-typoscript-debugger-eelExpression: The eel expression which should be evaluated
-	 * - __typo3-typoscript-debugger-currentArrayPath: The array path inside $this->evaluationTrace
+	 * - __neos-fusion-debugger-eelExpression: The eel expression which should be evaluated
+	 * - __neos-fusion-debugger-currentArrayPath: The array path inside $this->evaluationTrace
 	 *
 	 * @param ControllerContext $controllerContext
 	 * @return string
 	 */
 	protected function renderEelExpression(ControllerContext $controllerContext) {
-		$eelExpression = $controllerContext->getRequest()->getInternalArgument('__typo3-typoscript-debugger-eelExpression');
-		$currentArrayPath = $controllerContext->getRequest()->getInternalArgument('__typo3-typoscript-debugger-currentArrayPath');
+		$eelExpression = $controllerContext->getRequest()->getInternalArgument('__neos-fusion-debugger-eelExpression');
+		$currentArrayPath = $controllerContext->getRequest()->getInternalArgument('__neos-fusion-debugger-currentArrayPath');
 		$currentArrayPath = str_replace('[', '.', $currentArrayPath);
 		$currentArrayPath = str_replace(']', '', $currentArrayPath);
 		$currentArrayPath = trim($currentArrayPath, '.');
@@ -297,7 +298,7 @@ class Debugger implements DebuggerInterface {
 		$eelContextVariables['q'] = function($element) {
 			return new FlowQuery(array($element));
 		};
-		$eelContextVariables['this'] = $evaluation['tsObject'];
+		$eelContextVariables['this'] = $evaluation['fusionObject'];
 		$context = new Context($eelContextVariables);
 		return json_encode($this->eelEvaluator->evaluate($eelExpression, $context));
 	}
