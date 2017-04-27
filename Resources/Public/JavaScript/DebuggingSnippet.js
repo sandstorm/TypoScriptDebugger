@@ -6,13 +6,13 @@
 	// OPEN/CLOSE CHANNEL
 	////////////////////////////////////////////////
 	function openChannel() {
-		debuggerWindow = window.open(typoscript_debugger_remote_url, 'typo3-typoscript-debugger', windowSettings)
-		window.sessionStorage['typo3-typoscript-debugger-active'] = true;
+		debuggerWindow = window.open(fusion_debugger_remote_url, 'neos-fusion-debugger', windowSettings)
+		window.sessionStorage['neos-fusion-debugger-active'] = true;
 
 		channel = Channel.build({
 			window: debuggerWindow,
 			origin: window.location.protocol + '//' + window.location.host,
-			scope: 'typo3-typoscript-debugger'
+			scope: 'neos-fusion-debugger'
 		});
 
 		channel.bind('highlightElement', function(trans, token) {
@@ -27,7 +27,7 @@
 
 		channel.call({
 			method: 'updateEvaluationTrace',
-			params: typoscript_debugger_evaluation_trace,
+			params: fusion_debugger_evaluation_trace,
 			success: function() {
 			}
 		});
@@ -48,15 +48,15 @@
 		});
 
 		button.removeChild(button.firstChild);
-		button.appendChild(document.createTextNode('Deactivate TypoScript Debugger'));
+		button.appendChild(document.createTextNode('Deactivate Fusion Debugger'));
 	}
 
 	function closeChannel() {
 		debuggerWindow.close();
 		channel = null;
-		delete window.sessionStorage['typo3-typoscript-debugger-active'];
+		delete window.sessionStorage['neos-fusion-debugger-active'];
 		button.removeChild(button.firstChild);
-		button.appendChild(document.createTextNode('Activate TypoScript Debugger'));
+		button.appendChild(document.createTextNode('Activate Fusion Debugger'));
 		document.removeEventListener('mousemove', mouseMoveHandler);
 		document.removeEventListener('click', mouseClickHandler);
 		unhighlightAllNodes(false);
@@ -84,10 +84,10 @@
 				if (currentNode.nodeType == 1) {
 						// Element Node
 					if (select) {
-						currentNode.className += ' typo3-typoscript-debugger-selected';
+						currentNode.className += ' neos-fusion-debugger-selected';
 						selectedNodes.push(currentNode);
 					} else {
-						currentNode.className += ' typo3-typoscript-debugger-highlighted';
+						currentNode.className += ' neos-fusion-debugger-highlighted';
 						highlightedNodes.push(currentNode);
 					}
 				}
@@ -125,9 +125,9 @@
 			for (i=0; i < len; i++) {
 				node = nodes[i];
 				if (select) {
-					node.className = node.className.replace(/ typo3-typoscript-debugger-selected/, '')
+					node.className = node.className.replace(/ neos-fusion-debugger-selected/, '')
 				} else {
-					node.className = node.className.replace(/ typo3-typoscript-debugger-highlighted/, '')
+					node.className = node.className.replace(/ neos-fusion-debugger-highlighted/, '')
 				}
 			}
 			if (select) {
@@ -231,7 +231,7 @@
 	// ADD UI CONTROLS TO PAGE
 	////////////////////////////////////////////////
 	button = document.createElement('button');
-	button.appendChild(document.createTextNode('Activate TypoScript Debugger'));
+	button.appendChild(document.createTextNode('Activate Fusion Debugger'));
 
 	button.addEventListener('click', function() {
 		if (channel) {
@@ -244,11 +244,11 @@
 	css = document.createElement('style');
 	css.type = 'text/css';
 
-	css.innerHTML = '.typo3-typoscript-debugger-highlighted { outline: 4px solid #FFCF99;}' + "\n";
-	css.innerHTML += '.typo3-typoscript-debugger-selected { outline: 4px solid #FF8700;}'
+	css.innerHTML = '.neos-fusion-debugger-highlighted { outline: 4px solid #FFCF99;}' + "\n";
+	css.innerHTML += '.neos-fusion-debugger-selected { outline: 4px solid #FF8700;}'
 	document.body.appendChild(css);
 
-	if (window.sessionStorage['typo3-typoscript-debugger-active']) {
+	if (window.sessionStorage['neos-fusion-debugger-active']) {
 		openChannel();
 	}
 

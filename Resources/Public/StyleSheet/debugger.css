@@ -3,12 +3,12 @@
   background: #2D2D2D; }
   .debugger-wrapper .top-container legend {
     color: #FFFFFF; }
-  .debugger-wrapper .typoScriptEvaluationTree .highlighted, .debugger-wrapper .typoScriptEvaluationTree .selected {
+  .debugger-wrapper .fusionEvaluationTree .highlighted, .debugger-wrapper .fusionEvaluationTree .selected {
     background: #FF8700;
     display: block; }
-  .debugger-wrapper .typoScriptEvaluationTree ul {
+  .debugger-wrapper .fusionEvaluationTree ul {
     color: #FFFFFF; }
-    .debugger-wrapper .typoScriptEvaluationTree ul li {
+    .debugger-wrapper .fusionEvaluationTree ul li {
       cursor: pointer; }
   .debugger-wrapper .details-wrapper {
     position: fixed;
